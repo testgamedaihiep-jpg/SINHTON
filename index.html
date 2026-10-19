@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#131b1a">
+  <title>Sinh Tồn Ngày Tận Thế · H5</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23131b1a'/%3E%3Cpath d='M36 6L15 36h15l-3 22 23-33H35z' fill='%23e7b874'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Sinh Tồn Ngày Tận Thế"><span class="brand-mark">ϟ</span><span>NGÀY TẬN THẾ<small>SURVIVAL / H5</small></span></a>
+      <div class="dayclock"><span id="phaseIcon">☀</span><div><b id="dayLabel">NGÀY 01</b><small id="phaseLabel">Bình minh · Chuẩn bị sinh tồn</small></div><strong id="clock">03:00</strong><div class="phase-track"><i id="phaseProgress"></i></div></div>
+      <nav class="tools" aria-label="Tiện ích"><button id="rankBtn" title="Bảng xếp hạng (L)">♜ <span>BXH</span></button><button id="saveBtn" title="Lưu ván chơi">↧ <span>Lưu</span></button><button id="pauseBtn" title="Tạm dừng (P / Esc)">Ⅱ <span>Tạm dừng</span></button><button id="helpBtn" title="Hướng dẫn">?</button></nav>
+    </header>
+    <main id="world" aria-label="Bản đồ sinh tồn">
+      <canvas id="gameCanvas" tabindex="0" aria-label="Bản đồ game. Di chuyển bằng WASD, nhấn E để thu thập."></canvas>
+      <div class="vignette"></div>
+      <div class="hud">
+        <div class="resourcebar" aria-label="Tài nguyên">
+          <div class="resource"><span class="res-icon wood">♠</span><div><small>GỖ</small><b id="res-wood">60</b></div></div>
+          <div class="resource"><span class="res-icon stone">⬡</span><div><small>ĐÁ</small><b id="res-stone">40</b></div></div>
+          <div class="resource"><span class="res-icon water">◕</span><div><small>NƯỚC</small><b id="res-water">100</b></div></div>
+          <div class="resource"><span class="res-icon food">♧</span><div><small>LƯƠNG THỰC</small><b id="res-food">100</b></div></div>
+          <div class="resource coin-resource"><span class="res-icon coin">◆</span><div><small>XU QUỶ</small><b id="res-coin">0</b></div><span class="tip">Săn quái để kiếm xu</span></div>
+          <span class="autosave" id="saveStatus">Lưu trên trình duyệt</span>
+        </div>
+        <section class="field-card panel">
+          <div class="eyebrow"><i class="live-dot"></i> <span id="regionLabel">VÙNG TRO TÀN</span><span class="version">v1.0</span></div>
+          <h1>Sống qua bình minh.</h1>
+          <p id="objective">Thu thập tài nguyên. Săn quái lấy Xu Quỷ và gia cố căn cứ trước khi đêm xuống.</p>
+          <div class="boss-count"><span>◈ Đêm boss kế tiếp</span><b id="bossCountdown">NGÀY 07</b></div>
+        </section>
+        <section class="leader-card panel">
+          <div class="panel-title"><h2>NGƯỜI SỐNG SÓT</h2><span id="aliveCount">21 / 21</span></div>
+          <div id="miniRanks"></div>
+          <button id="allRanksBtn" class="text-button">Xem toàn bộ bảng xếp hạng <span>↗</span></button>
+        </section>
+        <div id="bossBar" class="bossbar panel" hidden><span id="bossName">KẺ NUỐT BÌNH MINH</span><div class="meter"><i id="bossHealth"></i></div><small id="bossHpText"></small></div>
+        <div id="notifications" class="notifications" aria-live="polite"></div>
+        <div id="selection" class="selection panel" hidden></div>
+        <div class="bottom-left">
+          <section class="vitals panel">
+            <div class="avatar">ϟ</div><div class="vital-bars"><div><b id="playerName">Người sống sót</b><span id="hpText">150 / 150</span></div><div class="meter hp"><i id="hpBar"></i></div><div class="hqline"><small>⌂ NHÀ CHÍNH</small><span id="hqText">1500 / 1500</span></div><div class="meter headquarters"><i id="hqBar"></i></div></div>
+            <button id="homeBtn" title="Trở về căn cứ (H)">⌂<small>H</small></button>
+          </section>
+          <section class="buildbar panel" id="buildbar"><div class="build-heading"><span>XÂY DỰNG</span><small id="buildHint">Mỗi công trình cần Xu Quỷ</small><button id="cancelBuild" hidden>Hủy · Esc</button></div><div id="buildButtons" class="build-buttons"></div></section>
+          <div class="keyguide"><span><kbd>W A S D</kbd> di chuyển</span><span><kbd>E</kbd> thu thập</span><span><kbd>Space</kbd> đánh</span><span><kbd>B</kbd> xây</span><span><kbd>M</kbd> bản đồ</span><span id="autoAttack">Tự đánh khi ở gần quái</span></div>
+        </div>
+        <section class="minimap panel"><div class="panel-title"><h2>BẢN ĐỒ KHU VỰC</h2><button id="mapBtn" title="Mở bản đồ (M)">⛶</button></div><canvas id="miniCanvas" width="256" height="160" aria-label="Bản đồ thu nhỏ"></canvas><div class="map-caption"><span><i></i> Căn cứ của bạn</span><button id="focusBtn">Về nhân vật ↗</button></div></section>
+        <div id="buildTooltip" class="build-tooltip panel" hidden></div>
+        <div id="touchControls"><div class="dpad"><button data-key="w" class="up" aria-label="Đi lên">↑</button><button data-key="a" class="left" aria-label="Đi trái">←</button><button data-key="s" class="down" aria-label="Đi xuống">↓</button><button data-key="d" class="right" aria-label="Đi phải">→</button></div><div class="touch-actions"><button data-key="e">Thu</button><button data-key=" ">Đánh</button></div></div>
+        <div id="pausedBadge" hidden>ĐANG TẠM DỪNG</div>
+      </div>
+    </main>
+  </div>
+  <div id="modalOverlay" class="modal-overlay">
+    <section class="modal intro" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></section>
+  </div>
+  <input id="importFile" type="file" accept=".json,application/json" hidden>
+  <script src="config.js"></script>
+  <script src="engine.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

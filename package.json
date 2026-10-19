@@ -1,0 +1,7 @@
+{
+  "name": "sinh-ton-ngay-tan-the",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Game sinh tồn tiếng Việt, 15–20 AI, chạy offline không cần cài thư viện.",
+  "scripts": { "start": "node server.js", "test": "node --test tests/engine.test.js" }
+}
