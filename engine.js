@@ -44,7 +44,20 @@
       if(this.s.nodes.some(n=>Math.hypot(n.x-x,n.y-y)<45))return null;
       const max=type==='water'?150:90+Math.floor(this.rand()*70);const n={id:this.id('n'),type,x,y,radius:type==='wood'?20:16,amount:max,max,respawn:0,variation:this.rand()};this.s.nodes.push(n);return n;
     }
-    addBuilding(owner,type,x,y,instant=false){const d=C.buildings[type];const b={id:this.id('b'),owner,type,x,y,size:d.size,level:1,hp:d.hp,maxHp:d.hp,buildLeft:instant?0:C.timing.construction,cooldown:0};this.s.buildings.push(b);this.dirty=true;return b;}
+    addBuilding(owner,type,x,y,instant=false,orientation='auto'){const d=C.buildings[type];const b={id:this.id('b'),owner,type,x,y,size:d.size,level:1,hp:d.hp,maxHp:d.hp,buildLeft:instant?0:C.timing.construction,cooldown:0};if(type==='wall'&&orientation!=='auto')b.orientation=orientation;this.s.buildings.push(b);this.dirty=true;return b;}
+    wallOrientation(b){
+      if(b.orientation==='horizontal'||b.orientation==='vertical')return b.orientation;
+      let horizontal=Infinity,vertical=Infinity;
+      for(const other of this.s.buildings){
+        if(other===b||other.id&&other.id===b.id||other.owner!==b.owner||other.hp<=0||!['wall','gate'].includes(other.type))continue;
+        const dx=Math.abs(other.x-b.x),dy=Math.abs(other.y-b.y),reach=(b.size+other.size)/2+16;
+        if(dy<=8&&dx>dy&&dx<=reach)horizontal=Math.min(horizontal,dx);
+        if(dx<=8&&dy>dx&&dy<=reach)vertical=Math.min(vertical,dy);
+      }
+      if(horizontal!==vertical)return vertical<horizontal?'vertical':'horizontal';
+      const o=this.owner(b.owner);
+      return o&&Math.abs(b.x-o.homeX)>Math.abs(b.y-o.homeY)?'vertical':'horizontal';
+    }
     owner(id){return this.s.owners.find(o=>o.id===id);}
     hq(id){return this.s.buildings.find(b=>b.owner===id&&b.type==='hq'&&b.hp>0);}
     buildingCost(type,level=1){const d=C.buildings[type];if(!d||level<1||level>5)return null;const scale=C.levels[level-1].cost;return {wood:Math.ceil(d.wood*scale),stone:Math.ceil(d.stone*scale),coin:Math.ceil(d.coin*scale)};}
@@ -63,7 +76,7 @@
       if(!this.canAfford(o,this.buildingCost(type)))return {ok:false,reason:'Thiếu tài nguyên: '+this.costText(this.buildingCost(type))};
       return {ok:true,reason:'Nhấp để xây · '+this.costText(this.buildingCost(type))};
     }
-    build(owner,type,x,y){const v=this.placement(owner,type,x,y);if(!v.ok)return v;const o=this.owner(owner);if(!this.pay(o,this.buildingCost(type)))return {ok:false,reason:'Thiếu tài nguyên.'};const b=this.addBuilding(owner,type,x,y);o.path=[];return {ok:true,building:b,reason:'Đang xây '+C.buildings[type].name+' (3 giây).'};}
+    build(owner,type,x,y,orientation='auto'){if(type==='wall'&&!['auto','horizontal','vertical'].includes(orientation))return {ok:false,reason:'Hướng tường không hợp lệ.'};const v=this.placement(owner,type,x,y);if(!v.ok)return v;const o=this.owner(owner);if(!this.pay(o,this.buildingCost(type)))return {ok:false,reason:'Thiếu tài nguyên.'};const b=this.addBuilding(owner,type,x,y,false,orientation);o.path=[];return {ok:true,building:b,reason:'Đang xây '+C.buildings[type].name+' (3 giây).'};}
     upgrade(owner,id){const b=this.s.buildings.find(b=>b.id===id),o=this.owner(owner);if(!o?.alive||!b||b.owner!==owner||b.hp<=0||b.buildLeft>0)return {ok:false,reason:'Không thể nâng cấp.'};if(b.level>=5)return {ok:false,reason:'Đã đạt cấp tối đa.'};const cost=this.buildingCost(b.type,b.level+1);if(!this.pay(o,cost))return {ok:false,reason:'Thiếu tài nguyên: '+this.costText(cost)};b.level++;const max=C.buildings[b.type].hp*C.levels[b.level-1].hp;b.hp+=max-b.maxHp;b.maxHp=max;return {ok:true,reason:'Đã nâng cấp lên cấp '+b.level};}
     repairCost(b){const fraction=Math.min(0.35,(b.maxHp-b.hp)/b.maxHp);return {wood:Math.max(1,Math.ceil(C.buildings[b.type].wood*fraction)),stone:Math.max(1,Math.ceil(C.buildings[b.type].stone*fraction))};}
     repair(owner,id){const b=this.s.buildings.find(b=>b.id===id),o=this.owner(owner);if(!o?.alive||!b||b.owner!==owner||b.hp<=0||b.hp>=b.maxHp||b.buildLeft>0)return {ok:false,reason:'Công trình không cần sửa.'};const cost=this.repairCost(b);if(!this.pay(o,cost))return {ok:false,reason:'Thiếu gỗ hoặc đá để sửa.'};b.hp=Math.min(b.maxHp,b.hp+b.maxHp*0.35);return {ok:true,reason:'Đã sửa công trình.'};}
@@ -195,7 +208,7 @@
       const validPath=e=>Array.isArray(e.path)&&e.path.length<=100&&e.path.every(p=>finite(p.x,0,C.world.width+48)&&finite(p.y,0,C.world.height+48));
       const ids=new Set();for(const [i,o]of s.owners.entries()){if(o.id!==i||typeof o.name!=='string'||o.name.length>24||!finite(o.hp,0,100000)||!finite(o.maxHp,1,100000)||!finite(o.x,0,C.world.width)||!finite(o.y,0,C.world.height)||!finite(o.homeX,0,C.world.width)||!finite(o.homeY,0,C.world.height)||!o.resources||!resources.every(k=>finite(o.resources[k],0,1e12))||!validPath(o))throw new Error('Tài nguyên hoặc nhân vật không hợp lệ.');}
       for(const arr of [s.buildings,s.nodes,s.monsters,s.projectiles])for(const e of arr){if(typeof e.id!=='string'||ids.has(e.id)||!finite(e.x,0,C.world.width)||!finite(e.y,0,C.world.height))throw new Error('Thực thể không hợp lệ.');ids.add(e.id);}
-      for(const b of s.buildings)if(!C.buildings[b.type]||!Number.isInteger(b.level)||b.level<1||b.level>5||!s.owners[b.owner]||!finite(b.hp,0,b.maxHp)||!finite(b.maxHp,1,1e6)||b.size!==C.buildings[b.type].size||!finite(b.buildLeft,0,C.timing.construction))throw new Error('Công trình không hợp lệ.');
+      for(const b of s.buildings)if(!C.buildings[b.type]||!Number.isInteger(b.level)||b.level<1||b.level>5||!s.owners[b.owner]||!finite(b.hp,0,b.maxHp)||!finite(b.maxHp,1,1e6)||b.size!==C.buildings[b.type].size||!finite(b.buildLeft,0,C.timing.construction)||b.orientation!==undefined&&(b.type!=='wall'||!['horizontal','vertical'].includes(b.orientation)))throw new Error('Công trình không hợp lệ.');
       for(const n of s.nodes)if(!resources.slice(0,4).includes(n.type)||!finite(n.amount,0,n.max)||!finite(n.max,1,10000))throw new Error('Điểm tài nguyên không hợp lệ.');
       for(const m of s.monsters)if(!C.monsters[m.type]||!finite(m.hp,0,m.maxHp)||!finite(m.maxHp,1,1e9)||m.radius!==C.monsters[m.type].radius)throw new Error('Quái không hợp lệ.');
       const game=Object.create(Game.prototype);game.s=s;game.s.effects=[];game.input={x:0,y:0,gather:false,attack:false};game.dirty=true;game.frame=0;game.reindex();return game;

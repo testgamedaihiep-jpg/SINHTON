@@ -23,6 +23,38 @@ test('walls block real movement; owner gates pass owners and block monsters',()=
   for(let i=0;i<60;i++)g.move(m,wall.x,wall.y+70,57,.1,false);assert.ok(m.y<wall.y);assert.ok(!Game.circleRect(m.x,m.y,m.radius,wall));assert.ok(wall.hp<wall.maxHp);
   const gate=g.s.buildings.find(b=>b.owner===0&&b.type==='gate');assert.equal(g.blockers(gate.x,gate.y,o.radius,o).some(b=>b.id===gate.id),false);assert.equal(g.blockers(gate.x,gate.y,m.radius,m).some(b=>b.id===gate.id),true);assert.equal(g.blockers(gate.x,gate.y,o.radius,g.owner(1)).some(b=>b.id===gate.id),true);
 });
+test('starter walls follow vertical sides and horizontal rows for every base',()=>{
+  const g=make();for(const o of g.s.owners){
+    const walls=g.s.buildings.filter(b=>b.owner===o.id&&b.type==='wall');
+    for(const b of walls)assert.equal(g.wallOrientation(b),b.y===o.homeY-104?'horizontal':'vertical');
+  }
+});
+test('wall previews follow nearby live friendly walls, including snapped offsets',()=>{
+  const g=make(),o=g.owner(0),preview={owner:0,x:o.homeX,y:o.homeY+200,size:C.buildings.wall.size};
+  const neighbor=g.addBuilding(0,'wall',preview.x+8,preview.y-48,true);
+  assert.equal(g.wallOrientation(preview),'vertical');
+  const built=g.addBuilding(0,'wall',preview.x,preview.y,true);
+  assert.equal(g.wallOrientation(built),'vertical');
+  neighbor.hp=0;assert.equal(g.wallOrientation(preview),'horizontal');
+  neighbor.hp=1;neighbor.owner=1;assert.equal(g.wallOrientation(preview),'horizontal');
+  neighbor.owner=0;neighbor.x=preview.x+48;neighbor.y=preview.y;
+  assert.equal(g.wallOrientation(preview),'horizontal');
+  preview.orientation='vertical';assert.equal(g.wallOrientation(preview),'vertical');
+});
+test('manual wall direction is paid once, survives saves and validates imported data',()=>{
+  const g=make(),o=g.owner(0);o.resources={wood:1000,stone:1000,coin:1000,water:100,food:100};
+  const spot=findSpot(g,'wall'),before={...o.resources};
+  assert.equal(g.build(0,'wall',spot.x,spot.y,'diagonal').ok,false);assert.deepEqual(o.resources,before);
+  const r=g.build(0,'wall',spot.x,spot.y,'vertical');assert.equal(r.ok,true);
+  assert.equal(o.resources.coin,before.coin-C.buildings.wall.coin);
+  assert.equal(g.wallOrientation(r.building),'vertical');
+  const loaded=Game.load(g.serialize()),b=loaded.s.buildings.find(b=>b.id===r.building.id);
+  assert.equal(b.orientation,'vertical');assert.equal(loaded.wallOrientation(b),'vertical');
+  const bad=JSON.parse(g.serialize());bad.state.buildings.find(b=>b.id===r.building.id).orientation='diagonal';
+  assert.throws(()=>Game.load(bad));
+  const legacy=JSON.parse(g.serialize());for(const wall of legacy.state.buildings)delete wall.orientation;
+  assert.doesNotThrow(()=>Game.load(legacy));
+});
 test('tower projectiles inflict configured damage and construction is inactive',()=>{
   const g=make(),o=g.owner(0),tower=g.s.buildings.find(b=>b.owner===0&&b.type==='tower');g.s.monsters=[];const m=g.spawnMonster('brute',tower.x+100,tower.y+40,0,true);m.speed=0;const before=m.hp;g.reindex();g.updateBuildings(.1);assert.equal(g.s.projectiles.length,1);assert.equal(g.s.projectiles[0].damage,C.levels[0].towerDamage);tick(g,.5);assert.ok(m.hp<before);
   tower.buildLeft=3;tower.cooldown=0;g.s.projectiles=[];g.updateBuildings(.1);assert.equal(g.s.projectiles.length,0);

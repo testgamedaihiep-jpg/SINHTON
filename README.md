@@ -26,6 +26,7 @@ Sau đó mở http://127.0.0.1:8080. Máy chủ thử nghiệm chỉ lắng nghe
 | Chiến đấu | Nhấp quái để đuổi đánh; tự đánh trong tầm; Space đánh gần |
 | Chọn công trình | Nhấp công trình để xem máu, cấp, chi phí, tác dụng và sửa/nâng cấp |
 | Xây dựng | Các nút dưới màn hình, B chọn tường, phím 1–6 chọn loại |
+| Xoay tường | Tường tự chọn hướng theo hàng bên cạnh; R hoặc nút Xoay để chọn dọc/ngang |
 | Đặt / hủy xây | Nhấp vị trí hợp lệ / chuột phải hoặc Esc |
 | Về căn cứ | H hoặc nút hình nhà cạnh thanh máu |
 | Quan sát bản đồ | M mở bản đồ; nhấp bản đồ nhỏ để xem căn cứ AI |
@@ -82,7 +83,7 @@ Giới hạn mặc định: 260 quái sống, 50 công trình/bên, 500 viên đ
 node --test tests/engine.test.js
 ```
 
-14 nhóm kiểm tra bao gồm số lượng AI, tài nguyên ban đầu, chi phí/va chạm/xây/nâng/sửa, trữ lượng/tái sinh, thưởng chỉ một lần, tháp gây sát thương, AI thu thập/đánh/xây/sửa, sóng quái theo căn cứ, một boss mỗi chu kỳ, đòn boss, lưu/tải/RNG, đói/khát, loại căn cứ, giới hạn thực thể và BXH.
+17 nhóm kiểm tra bao gồm hướng tường dọc/ngang, xem trước, lưu/tải hướng đã chọn, số lượng AI, tài nguyên ban đầu, chi phí/va chạm/xây/nâng/sửa, trữ lượng/tái sinh, thưởng chỉ một lần, tháp gây sát thương, AI thu thập/đánh/xây/sửa, sóng quái theo căn cứ, một boss mỗi chu kỳ, đòn boss, lưu/tải/RNG, đói/khát, loại căn cứ, giới hạn thực thể và BXH.
 
 **Đến nhanh đêm 7:** từ màn hình đầu mở “Tùy chỉnh thời lượng & chế độ kiểm tra”, đánh dấu chế độ kiểm tra, bắt đầu rồi nhấn F7; hoặc dùng nút trong menu tạm dừng. Không cấp miễn phí tài nguyên cho chế độ này. Mặc định tắt.
 
